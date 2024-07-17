@@ -1,6 +1,6 @@
 const count_Shorts = new Set();
 
-const UserEntryData = new Set();
+const UserEntryData = new Map();
 
 const User_TimeSpent_Data = new Set();
 
@@ -18,6 +18,8 @@ chrome.tabs.onUpdated.addListener((tabID, tab) => {
   }
 });
 
+chrome.tabs.onActivated.addListener(getAllTabs)
+
 async function blockYTShorts() {
   chrome.tabs.update({ url: "https://www.youtube.com/" });
   const tab = await getTab();
@@ -32,15 +34,18 @@ async function blockYTShorts() {
 
 
 
+
+
+
+
 async function StoreDataEntry(){
     let currentTab =await getTab();
     console.log(currentTab)
     const data = {
-      url: currentTab.url,
       time: getTime(),
     };
     if(currentTab.title!=="New Tab" && currentTab.url!=="https://www.youtube.com/")
-        UserEntryData.add(data);
+        UserEntryData.set(currentTab.url,data);
     console.log(UserEntryData);
 }
 
@@ -60,16 +65,35 @@ async function getTab() {
 function getAllTabs() {
   chrome.tabs.query({}, function (tabs) {
     tabs.forEach(function (tab) {
-      console.log(tab);
+      if(tab.active==false && UserEntryData.has(tab.url)){
+            let url=tab.url;
+            console.log(UserEntryData.get(tab.url))
+            let time_spent=getTimeDifference( UserEntryData.get(tab.url).time);
+
+            User_TimeSpent_Data.add({url,time_spent});
+            UserEntryData.delete(tab.url);
+      }
     });
+
+    console.log(User_TimeSpent_Data)
   });
 }
 
 function getTime() {
   const now = new Date();
-  const hours = now.getHours().toString().padStart(2, "0");
-  const minutes = now.getMinutes().toString().padStart(2, "0");
+//   const hours = now.getHours().toString().padStart(2, "0");
+//   const minutes = now.getMinutes().toString().padStart(2, "0");
 
-  const timeString = `${hours}:${minutes}`;
-  return timeString;
+//   const timeString = `${hours}:${minutes}`;
+  return now;
 }
+
+
+
+  
+  function getTimeDifference(userTime) {
+        const currentTime=getTime();
+
+        return (currentTime-userTime)/(1000*60);
+
+  }
